@@ -1,0 +1,105 @@
+#!/bin/bash
+# This script provides weather information of the seleceted suburb. 
+# You can use this to search the suburb as well.
+# Use at your own riski!!
+#Eg:
+#weatherau -s mario
+#1): Marion, SA 5043,Adelaide
+#2): Marion Bay, SA 5575,Yorke Peninsula
+#3): Marion Bay, TAS 7175,Southern
+#4): Marionvale, VIC 3634,Goulburn
+#5): Marion Reef, QLD,Mackay
+#Select the suburb from above and enter the line no. (Eg: 1): 
+##############################################################
+###                RELEASE NOTE                            ###
+##############################################################
+# v1.0 	15-01-2017	Initial release  Uditha deSoysa (madusanka@gmail.com)
+
+
+#Vaiables
+F_TEMP="/tmp/"`basename $0`
+# Delete temp file at exit
+trap "rm -f '$F_TEMP'" exit
+
+gethelp (){
+cat << EOF
+`basename $0`: get Australian weather info.
+
+usage: `basename $0` [-c SA suburb name] [-s suburb name] [-h] 
+
+OPTIONS:
+	-c    Enter SA suburb. 
+	-s    Search for Australian suburb. 
+	-h    Help. Display help message.
+
+Usage Eg:
+1. `basename $0` -c "st marys"
+2. `basename $0` -s syd
+3. `basename $0` 
+EOF
+}
+
+getweather(){
+	DATA=`curl -s $1`
+	# Get the location detail
+	 <<< $DATA awk -F"ww.location" '{print $2}'| awk -v FS='(:|,)' '{print $4$12$6}' | sed -e "s/\"\"/,/g" -e "s/\"//g"
+	# Get the current temp,max, feel like, humidity and rain details for today
+	echo -n  "Now "$(<<< $DATA  awk -F"Now" '{print $2}'| awk -v FS='(<|>)' '{print $19}'| sed -e "s/&deg;//g")
+	echo -e " - Max "$(<<< $DATA awk -F"data-max" '{print $2}' | awk -F"\"" '{print $2}')" C"
+	<<< $DATA  awk -F"trend trending" '{print $2}' |awk -F"li class=" '{print $1$2$3}' | awk -v FS='(>|<)' '{print $8"|"$28, $32"|"$52, $56}' | sed -e "s/&deg;//g" -e "s/|/\n/g"
+	echo -e "---------------------"
+	# Get the forecast in detail
+   <<< $DATA awk -F"region-forecast" '{print $3}' |  awk -v FS='(>|<)' '{print $14}'| fold -w 40 -s
+	echo -e "---------------------\nSource Willy Weather"
+
+}
+
+saweather() {
+	# Format the suburb details to match 
+	if [ -z "$1" ]; then 
+		echo -n "Whcich suburb in SA: "; read SUB
+		LOC=$( echo $SUB| sed "s/ /-/g")	
+	else
+		[[ -z $2 ]] && LOC="$1" || LOC="$1-$2"  
+		[[ -n $3 ]] && LOC="$1-$2-$3"
+	fi
+			
+	URL="http://www.willyweather.com.au/sa/adelaide/$LOC.html"
+	# get the HTTP error code to check the suburb name is valid 
+	OUTCODE=$(curl -s --output /dev/stderr -w "%{http_code}" $URL 2> /dev/null)
+	[[ $OUTCODE == 404 ]] && gethelp && exit 1
+
+	getweather $URL
+	exit 0
+}
+
+searchweather(){
+	if [ -z $1 ];then echo -n "Which suburb: "; read SER; else SER=$1; fi
+	# Search for the suburb as per the given search pattern
+	curl -s  http://www.willyweather.com.au/search/search.html?query=$SER 2> /dev/null \
+		| grep "Results List" | sed "s/li/\n/g" | grep -e "data-lat" \
+		| awk -v FS="(>|<)" '{print $3"\""$8","$6}' \
+		| awk -F"\"" '{print $8"|"$2}' > $F_TEMP
+	if [ ! -s $F_TEMP ] ; then  echo "Cann't find the suburb, please enter a valid suburb name and try again"; exit 1; fi
+
+	i=1; while read line; do echo -n $i"):" $line| cut -d"|" -f1; ((i++)); done < $F_TEMP
+
+	echo -n "Select the suburb from above and enter the line no. (Eg: 1) [default 1]: "; read CITY
+	# Select the line (selected above) from the file and get the location URL
+	LOC=$(sed "${CITY}q;d" $F_TEMP | awk -F"|" '{print $2}')
+	URL="http://www.willyweather.com.au$LOC"
+	getweather $URL
+}
+
+#Main
+
+while getopts "c:s:h" ARG; do
+  case $ARG in
+   h) gethelp; exit 0;;
+   s) searchweather $2 ; shift 2; exit 0 ;;
+   c) saweather $2 ; shift 2; exit 0 ;;
+   *) gethelp; exit 0;;
+  esac
+done
+
+gethelp; exit 1 
