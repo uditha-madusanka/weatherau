@@ -11,8 +11,8 @@ OPTIONS:
    -h    Help. Display help message.
 
 Usage Eg:
-1. weatherau -c "st marys"
-2. weatherau -s mario
+1- weatherau -c "st marys"
+2- weatherau -s mario
 1): Marion, SA 5043,Adelaide
 2): Marion Bay, SA 5575,Yorke Peninsula
 3): Marion Bay, TAS 7175,Southern
