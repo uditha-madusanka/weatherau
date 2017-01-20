@@ -12,6 +12,7 @@ OPTIONS:
 
 Usage Eg:
 1- weatherau -c "st marys"
+
 2- weatherau -s mario
 1): Marion, SA 5043,Adelaide
 2): Marion Bay, SA 5575,Yorke Peninsula
