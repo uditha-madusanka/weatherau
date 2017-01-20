@@ -11,8 +11,9 @@ OPTIONS:
    -h    Help. Display help message.
 
 Usage Eg:
-`$ weatherau -c "st marys"`
-
+```coffeescript
+$ weatherau -c "st marys"`
+```
 
 `$ weatherau -s mario
 1): Marion, SA 5043,Adelaide
@@ -20,4 +21,4 @@ Usage Eg:
 3): Marion Bay, TAS 7175,Southern
 4): Marionvale, VIC 3634,Goulburn
 5): Marion Reef, QLD,Mackay
-Select the suburb from above and enter the line no. (Eg: 1): '
+Select the suburb from above and enter the line no. (Eg: 1):`
